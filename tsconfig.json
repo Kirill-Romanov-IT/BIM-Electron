@@ -1,19 +1,18 @@
 {
   "compilerOptions": {
     "target": "ES6",
-    "allowJs": true,
     "module": "commonjs",
-    "skipLibCheck": true,
+    "jsx": "react",
+    "strict": true,
     "esModuleInterop": true,
-    "noImplicitAny": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "outDir": "dist",
-    "moduleResolution": "node",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "paths": {
-      "*": ["node_modules/*"]
-    }
+    "isolatedModules": true,
+    "noEmit": true,
+    "types": ["@webgpu/types"]
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src"
+  ]
 }
