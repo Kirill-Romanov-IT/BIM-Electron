@@ -1,6 +1,7 @@
 // src/renderer.tsx
 
 import React from 'react';
+import './index.css'; // <-- Возвращаем импорт стилей
 import { createRoot } from 'react-dom/client';
 import WebGPUCanvas from './WebGPUCanvas';
 import TitleBar from './TitleBar'; // <-- Импортируем наш компонент
