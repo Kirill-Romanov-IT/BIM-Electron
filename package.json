@@ -52,15 +52,15 @@
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
+    "gl-matrix": "^3.4.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
   "compilerOptions": {
-    "jsx": "react", 
+    "jsx": "react",
     "target": "es5",
     "module": "commonjs",
     "strict": true,
     "esModuleInterop": true
   }
-
 }
