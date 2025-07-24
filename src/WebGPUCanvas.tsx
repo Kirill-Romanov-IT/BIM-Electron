@@ -2,21 +2,29 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 // ===== Matrix Math Helpers =====
-// Creates a perspective projection matrix.
-function getProjectionMatrix(aspect: number, fov: number = Math.PI / 4, zNear: number = 0.1, zFar: number = 100.0): Float32Array {
+// Creates a perspective projection matrix with double precision.
+function getProjectionMatrix(aspect: number, fov: number = Math.PI / 4, zNear: number = 0.1, zFar: number = 100.0): Float64Array {
+    console.log(`[WebGPU] Creating projection matrix with double precision - aspect: ${aspect}, fov: ${fov}, zNear: ${zNear}, zFar: ${zFar}`);
+    
     const f = 1.0 / Math.tan(fov / 2);
     const rangeInv = 1 / (zNear - zFar);
-    return new Float32Array([
+    
+    const matrix = new Float64Array([
         f / aspect, 0, 0, 0,
         0, f, 0, 0,
         0, 0, (zNear + zFar) * rangeInv, -1,
         0, 0, zNear * zFar * rangeInv * 2, 0
     ]);
+    
+    console.log(`[WebGPU] Projection matrix created with ${matrix.constructor.name} (64-bit precision)`);
+    return matrix;
 }
 
-// Multiplies two 4x4 matrices.
-function multiply(a: Float32Array, b: Float32Array): Float32Array {
-    const out = new Float32Array(16);
+// Multiplies two 4x4 matrices with double precision.
+function multiply(a: Float64Array, b: Float64Array): Float64Array {
+    console.log(`[WebGPU] Multiplying matrices with double precision (${a.constructor.name} × ${b.constructor.name})`);
+    
+    const out = new Float64Array(16);
     const a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3];
     const a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7];
     const a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11];
@@ -45,7 +53,15 @@ function multiply(a: Float32Array, b: Float32Array): Float32Array {
     out[13] = b0 * a01 + b1 * a11 + b2 * a21 + b3 * a31;
     out[14] = b0 * a02 + b1 * a12 + b2 * a22 + b3 * a32;
     out[15] = b0 * a03 + b1 * a13 + b2 * a23 + b3 * a33;
+    
+    console.log(`[WebGPU] Matrix multiplication completed with ${out.constructor.name} result`);
     return out;
+}
+
+// Helper function to convert Float64Array to Float32Array for GPU upload
+function toFloat32(matrix: Float64Array): Float32Array {
+    console.log(`[WebGPU] Converting ${matrix.constructor.name} to Float32Array for GPU upload`);
+    return new Float32Array(matrix);
 }
 
 const shaderCode = `
@@ -194,6 +210,7 @@ const WebGPUCanvas = () => {
             });
 
             setStatusMessage("WebGPU успешно инициализирован!");
+            console.log(`[WebGPU] Initialization complete - using double precision (64-bit) matrices like Revit for enhanced accuracy`);
 
             let lastTime = performance.now();
             let frameCount = 0;
@@ -212,22 +229,28 @@ const WebGPUCanvas = () => {
 
                 const aspect = canvas.width / canvas.height;
                 const projectionMatrix = getProjectionMatrix(aspect);
-                const viewMatrix = new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-3,1]);
+                const viewMatrix = new Float64Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-3,1]);
                 
                 const angleY = now / 1500;
                 const angleX = now / 2000;
 
                 const cY = Math.cos(angleY), sY = Math.sin(angleY);
-                const rotY = new Float32Array([cY,0,sY,0, 0,1,0,0, -sY,0,cY,0, 0,0,0,1]);
+                const rotY = new Float64Array([cY,0,sY,0, 0,1,0,0, -sY,0,cY,0, 0,0,0,1]);
 
                 const cX = Math.cos(angleX), sX = Math.sin(angleX);
-                const rotX = new Float32Array([1,0,0,0, 0,cX,-sX,0, 0,sX,cX,0, 0,0,0,1]);
+                const rotX = new Float64Array([1,0,0,0, 0,cX,-sX,0, 0,sX,cX,0, 0,0,0,1]);
+                
+                console.log(`[WebGPU] Computing transformation matrices for frame - angleX: ${angleX.toFixed(4)}, angleY: ${angleY.toFixed(4)}`);
                 
                 const modelMatrix = multiply(rotY, rotX);
                 const modelViewMatrix = multiply(viewMatrix, modelMatrix);
                 const modelViewProjectionMatrix = multiply(projectionMatrix, modelViewMatrix);
 
-                device.queue.writeBuffer(uniformBuffer, 0, modelViewProjectionMatrix);
+                // Convert to Float32Array for GPU upload
+                const gpuMatrix = toFloat32(modelViewProjectionMatrix);
+                console.log(`[WebGPU] Final MVP matrix converted to ${gpuMatrix.constructor.name} for GPU upload`);
+
+                device.queue.writeBuffer(uniformBuffer, 0, gpuMatrix);
 
                 const commandEncoder = device.createCommandEncoder();
                 const textureView = context.getCurrentTexture().createView();
